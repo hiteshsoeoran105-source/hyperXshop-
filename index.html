@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hyper X Shop</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+
+/* ================= GLOBAL ================= */
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at top, #1a1a1a, #000);
+  color: white;
+}
+
+/* ================= NAVBAR ================= */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 30px;
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(20px);
+}
+
+.navbar h2 {
+  background: linear-gradient(45deg,#ffd814,#ff9900);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.navbar input {
+  width: 40%;
+  padding: 10px;
+  border-radius: 20px;
+  border: none;
+}
+
+.cart-count {
+  background: red;
+  padding: 3px 8px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+/* ================= HERO ================= */
+.hero {
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 50px;
+  background: url('https://images.unsplash.com/photo-1607082349566-187342175e2f') center/cover;
+}
+
+.hero h1 {
+  font-size: 3rem;
+}
+
+/* ================= PRODUCTS ================= */
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap: 30px;
+  padding: 40px;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 15px;
+  transition: 0.3s;
+  backdrop-filter: blur(20px);
+}
+
+.card:hover {
+  transform: translateY(-10px) scale(1.03);
+}
+
+.card img {
+  width: 100%;
+  height: 180px;
+  border-radius: 15px;
+  object-fit: cover;
+}
+
+/* BUTTON */
+button {
+  background: linear-gradient(45deg,#ffd814,#ff9900);
+  border: none;
+  padding: 10px;
+  border-radius: 30px;
+  cursor: pointer;
+  margin-top: 5px;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* ================= SECTIONS ================= */
+.section {
+  display: none;
+}
+.active {
+  display: block;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <h2>Hyper X Shop</h2>
+
+  <input type="text" id="search" placeholder="Search..." onkeyup="searchProduct()">
+
+  <div>
+    <button onclick="showSection('home')">Home</button>
+    <button onclick="showSection('cart')">
+      Cart <span class="cart-count" id="cart-count">0</span>
+    </button>
+    <button onclick="showSection('orders')">Orders</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="section active">
+  <div class="hero">
+    <h1>Premium Shopping Experience</h1>
+  </div>
+
+  <div class="products" id="product-list"></div>
+</div>
+
+<!-- CART -->
+<div id="cart" class="section">
+  <h2 style="padding:20px;">Your Cart</h2>
+  <div id="cart-items" style="padding:20px;"></div>
+</div>
+
+<!-- ORDERS -->
+<div id="orders" class="section">
+  <h2 style="padding:20px;">Orders</h2>
+  <div id="order-list" style="padding:20px;"></div>
+</div>
+
+<script>
+
+/* ================= PRODUCTS ================= */
+const products = [
+  {id:1,name:"Amazon Speaker",price:7999,rating:4.8,img:"https://images.unsplash.com/photo-1518444065439-e933c06ce9cd"},
+  {id:2,name:"Gaming Setup",price:15999,rating:4.7,img:"https://images.unsplash.com/photo-1587202372775-e229f172b9d7"},
+  {id:3,name:"Keyboard",price:4999,rating:4.5,img:"https://images.unsplash.com/photo-1517433456452-f9633a875f6f"}
+];
+
+/* ================= NAVIGATION ================= */
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+
+  if(id==="cart") loadCart();
+  if(id==="orders") loadOrders();
+}
+
+/* ================= LOAD PRODUCTS ================= */
+function loadProducts(list = products){
+  let div = document.getElementById("product-list");
+  div.innerHTML="";
+
+  list.forEach(p=>{
+    div.innerHTML += `
+      <div class="card">
+        <img src="${p.img}">
+        <h3>${p.name}</h3>
+        <p>₹${p.price}</p>
+        <p>⭐ ${p.rating}</p>
+        <button onclick="addToCart(${p.id})">Add to Cart</button>
+      </div>
+    `;
+  });
+}
+loadProducts();
+
+/* ================= SEARCH ================= */
+function searchProduct(){
+  let val = document.getElementById("search").value.toLowerCase();
+  let filtered = products.filter(p=>p.name.toLowerCase().includes(val));
+  loadProducts(filtered);
+}
+
+/* ================= CART ================= */
+function getCart(){
+  return JSON.parse(localStorage.getItem("cart")) || [];
+}
+
+function saveCart(cart){
+  localStorage.setItem("cart", JSON.stringify(cart));
+}
+
+function addToCart(id){
+  let cart = getCart();
+  let item = cart.find(i => i.id === id);
+
+  if(item){
+    item.qty++;
+  } else {
+    cart.push({id, qty:1});
+  }
+
+  saveCart(cart);
+  updateCartCount();
+}
+
+/* REMOVE ITEM */
+function removeFromCart(id){
+  let cart = getCart().filter(i => i.id !== id);
+  saveCart(cart);
+  loadCart();
+  updateCartCount();
+}
+
+/* CLEAR CART */
+function clearCart(){
+  localStorage.removeItem("cart");
+  loadCart();
+  updateCartCount();
+}
+
+/* UPDATE COUNT */
+function updateCartCount(){
+  let cart = getCart();
+  let total = cart.reduce((sum,i)=>sum+i.qty,0);
+  document.getElementById("cart-count").innerText = total;
+}
+updateCartCount();
+
+/* LOAD CART */
+function loadCart(){
+  let cart = getCart();
+  let div = document.getElementById("cart-items");
+  div.innerHTML="";
+
+  if(cart.length === 0){
+    div.innerHTML = "<p>Your cart is empty 😶</p>";
+    return;
+  }
+
+  let total = 0;
+
+  cart.forEach(item=>{
+    let p = products.find(x=>x.id===item.id);
+    let price = p.price * item.qty;
+    total += price;
+
+    div.innerHTML += `
+      <div class="card">
+        <h3>${p.name}</h3>
+        <p>Qty: ${item.qty}</p>
+        <p>₹${price}</p>
+        <button onclick="removeFromCart(${p.id})">Remove</button>
+      </div>
+    `;
+  });
+
+  div.innerHTML += `
+    <h2>Total: ₹${total}</h2>
+    <button onclick="checkout()">Checkout</button>
+    <button onclick="clearCart()">Clear Cart</button>
+  `;
+}
+
+/* ================= CHECKOUT ================= */
+function checkout(){
+  let cart = getCart();
+  if(cart.length === 0) return;
+
+  let orders = JSON.parse(localStorage.getItem("orders")) || [];
+
+  orders.push({
+    items: cart,
+    status: "Processing"
+  });
+
+  localStorage.setItem("orders", JSON.stringify(orders));
+  localStorage.removeItem("cart");
+
+  alert("Order placed successfully 🔥");
+
+  updateCartCount();
+  loadCart();
+}
+
+/* ================= ORDERS ================= */
+function loadOrders(){
+  let orders = JSON.parse(localStorage.getItem("orders")) || [];
+  let div = document.getElementById("order-list");
+  div.innerHTML="";
+
+  if(orders.length === 0){
+    div.innerHTML = "<p>No orders yet 👀</p>";
+    return;
+  }
+
+  orders.forEach((order,i)=>{
+    let itemsHTML = order.items.map(item=>{
+      let p = products.find(x=>x.id===item.id);
+      return `${p.name} x${item.qty}`;
+    }).join(", ");
+
+    div.innerHTML += `
+      <div class="card">
+        <h3>Order ${i+1}</h3>
+        <p>${itemsHTML}</p>
+        <p>Status: ${order.status}</p>
+      </div>
+    `;
+  });
+}
+
+</script>
+
+</body>
+</html>
